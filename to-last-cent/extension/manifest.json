@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "To Last Cent — Automated Cashback",
+  "short_name": "To Last Cent",
+  "version": "1.0.0",
+  "description": "Automated cashback at checkout. Save to the last cent at 1,000+ stores powered by CJ Affiliate.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "To Last Cent"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["config.js", "contentScript.js"],
+      "css": ["contentStyle.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "tabs",
+    "alarms",
+    "webNavigation",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://*.tolastcent.com/*",
+    "https://www.anrdoezrs.net/*",
+    "https://www.dpbolvw.net/*",
+    "https://www.jdoqocy.com/*",
+    "https://www.kqzyfj.com/*",
+    "https://www.tkqlhce.com/*",
+    "https://www.awltovhc.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["data/merchants.json", "contentStyle.css"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "minimum_chrome_version": "110"
+}

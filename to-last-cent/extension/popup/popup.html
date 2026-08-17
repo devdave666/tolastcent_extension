@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To Last Cent</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="tlc-app">
+      <header class="tlc-header">
+        <div class="tlc-brand">
+          <span class="tlc-logo-mark">¢</span>
+          <span class="tlc-logo-text">To Last Cent</span>
+        </div>
+        <span id="tlc-status-badge" class="tlc-badge tlc-badge-idle">
+          <span class="tlc-badge-dot"></span>
+          <span id="tlc-status-label">Checking site…</span>
+        </span>
+      </header>
+
+      <!-- Signed-out view -->
+      <section id="tlc-auth-view" class="tlc-view" hidden>
+        <p class="tlc-auth-title" id="tlc-auth-title">Welcome back</p>
+        <p class="tlc-auth-subtitle">
+          Sign in to track your cashback balance and activate offers.
+        </p>
+        <form id="tlc-auth-form" class="tlc-form">
+          <label class="tlc-field">
+            <span>Email</span>
+            <input type="email" id="tlc-email" required autocomplete="email" />
+          </label>
+          <label class="tlc-field">
+            <span>Password</span>
+            <input
+              type="password"
+              id="tlc-password"
+              required
+              minlength="8"
+              autocomplete="current-password"
+            />
+          </label>
+          <p id="tlc-auth-error" class="tlc-error" hidden></p>
+          <button type="submit" class="tlc-btn tlc-btn-primary tlc-btn-block" id="tlc-auth-submit">
+            Sign In
+          </button>
+        </form>
+        <button type="button" id="tlc-auth-toggle" class="tlc-link-btn">
+          Need an account? Sign up
+        </button>
+      </section>
+
+      <!-- Signed-in view -->
+      <section id="tlc-main-view" class="tlc-view" hidden>
+        <div class="tlc-balance-grid">
+          <div class="tlc-balance-card">
+            <span class="tlc-balance-label">Pending</span>
+            <span class="tlc-balance-value" id="tlc-balance-pending">$0.00</span>
+          </div>
+          <div class="tlc-balance-card tlc-balance-card-available">
+            <span class="tlc-balance-label">Available</span>
+            <span class="tlc-balance-value" id="tlc-balance-available">$0.00</span>
+          </div>
+        </div>
+
+        <div class="tlc-current-site" id="tlc-current-site" hidden>
+          <div class="tlc-current-site-info">
+            <span class="tlc-current-site-name" id="tlc-current-site-name"></span>
+            <span class="tlc-current-site-rate" id="tlc-current-site-rate"></span>
+          </div>
+          <button type="button" class="tlc-btn tlc-btn-primary tlc-btn-sm" id="tlc-current-site-activate">
+            Activate
+          </button>
+        </div>
+
+        <div class="tlc-search">
+          <input
+            type="search"
+            id="tlc-search-input"
+            placeholder="Search 1,000+ stores…"
+            autocomplete="off"
+          />
+        </div>
+
+        <ul class="tlc-store-list" id="tlc-store-list"></ul>
+        <p class="tlc-empty-state" id="tlc-empty-state" hidden>
+          No stores match your search.
+        </p>
+      </section>
+
+      <footer class="tlc-footer">
+        <a id="tlc-dashboard-link" href="#" target="_blank" rel="noopener">Dashboard</a>
+        <button type="button" id="tlc-signout-btn" class="tlc-link-btn" hidden>
+          Sign out
+        </button>
+      </footer>
+    </div>
+
+    <script src="../config.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
