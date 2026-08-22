@@ -35,6 +35,7 @@
       DISMISSED_BANNERS: "tlc_dismissed_banners",
       SETTINGS: "tlc_settings",
       LAST_LANDED_URLS: "tlc_last_landed_urls",
+      TAB_POSITION: "tlc_tab_position",
     },
 
     // How often (minutes) the background worker refreshes the balance and

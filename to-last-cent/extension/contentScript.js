@@ -30,6 +30,34 @@
 
   let currentMerchant = null;
   let containerEl = null;
+  let dragState = null;
+
+  // Attached once at module scope (rather than per-render) so dragging the
+  // edge tab never accumulates duplicate document-level listeners across
+  // repeated compact/full transitions.
+  document.addEventListener("mousemove", (event) => {
+    if (!dragState || !containerEl) return;
+    const delta = event.clientY - dragState.startY;
+    if (Math.abs(delta) > 4) dragState.moved = true;
+    const maxTop = window.innerHeight - containerEl.offsetHeight - 8;
+    const nextTop = Math.max(8, Math.min(dragState.startTop + delta, maxTop));
+    containerEl.style.top = `${nextTop}px`;
+    containerEl.style.bottom = "auto";
+  });
+
+  document.addEventListener("mouseup", async () => {
+    if (!dragState || !containerEl) return;
+    const { moved, onClick } = dragState;
+    dragState = null;
+    containerEl.classList.remove("tlc-dragging");
+
+    if (moved) {
+      const top = parseFloat(containerEl.style.top);
+      await setStorage(STORAGE_KEYS.TAB_POSITION, top);
+    } else {
+      onClick();
+    }
+  });
 
   init();
 
@@ -64,13 +92,15 @@
     render(merchant, active ? "compact" : "full");
   }
 
-  function render(merchant, mode) {
+  async function render(merchant, mode) {
     if (document.getElementById(CONTAINER_ID)) return;
 
     containerEl = document.createElement("div");
     containerEl.id = CONTAINER_ID;
     containerEl.setAttribute("role", "complementary");
     containerEl.setAttribute("aria-label", "To Last Cent cashback");
+
+    await applySavedPosition();
 
     if (mode === "compact") {
       renderCompact(merchant);
@@ -82,6 +112,16 @@
     requestAnimationFrame(() => containerEl.classList.add("tlc-visible"));
   }
 
+  /** Remembers where the user last dragged the edge tab so it stays put
+   *  across page loads, instead of resetting to the default spot every time. */
+  async function applySavedPosition() {
+    const savedTop = await getStorage(STORAGE_KEYS.TAB_POSITION);
+    if (typeof savedTop === "number") {
+      containerEl.style.top = `${savedTop}px`;
+      containerEl.style.bottom = "auto";
+    }
+  }
+
   function renderCompact(merchant) {
     containerEl.classList.remove("tlc-activated");
     containerEl.classList.add("tlc-compact");
@@ -90,15 +130,37 @@
         type="button"
         class="tlc-edge-tab"
         data-action="expand"
-        aria-label="To Last Cent — cashback active, click to refresh"
-        title="Cashback active — click to refresh"
+        aria-label="To Last Cent — cashback active. Click to refresh, or drag to reposition."
+        title="Cashback active — click to refresh, drag to reposition"
       >
         <span class="tlc-edge-mark">¢</span>
         <span class="tlc-edge-dot"></span>
       </button>
     `;
-    containerEl.querySelector('[data-action="expand"]').addEventListener("click", () => {
-      renderFull(merchant, { isRefresh: true });
+    const tab = containerEl.querySelector('[data-action="expand"]');
+    makeDraggable(tab, () => renderFull(merchant, { isRefresh: true }));
+  }
+
+  /**
+   * Vertical drag-to-reposition along the left edge — keeps the "docked
+   * ribbon" look (still flush against the edge) while letting the user
+   * move it out of the way of page content, the way Honey's badge can be
+   * dragged. A plain click (no meaningful movement) still expands the
+   * full card; only an actual drag is treated as a reposition. The
+   * document-level mousemove/mouseup listeners live at module scope (see
+   * top of file) — this just arms them via mousedown on the current handle.
+   */
+  function makeDraggable(handle, onClick) {
+    handle.addEventListener("mousedown", (event) => {
+      if (event.button !== 0) return;
+      dragState = {
+        startY: event.clientY,
+        startTop: containerEl.getBoundingClientRect().top,
+        moved: false,
+        onClick,
+      };
+      containerEl.classList.add("tlc-dragging");
+      event.preventDefault();
     });
   }
 
@@ -137,6 +199,16 @@
       .querySelector('[data-action="activate"]')
       .addEventListener("click", (e) => onActivateClick(e, merchant, isRefresh));
     containerEl.querySelector('[data-action="dismiss"]').addEventListener("click", onDismissClick);
+
+    // The much-taller full card can overflow past the viewport bottom if it
+    // opens at a `top` position that was only valid for the short edge tab
+    // (e.g. dragged near the bottom of the screen) — pull it up if needed.
+    if (containerEl.style.top) {
+      const maxTop = window.innerHeight - containerEl.offsetHeight - 8;
+      if (parseFloat(containerEl.style.top) > maxTop) {
+        containerEl.style.top = `${Math.max(8, maxTop)}px`;
+      }
+    }
   }
 
   async function onActivateClick(event, merchant, isRefresh) {
@@ -191,6 +263,12 @@
   function getStorage(key) {
     return new Promise((resolve) => {
       chrome.storage.local.get([key], (result) => resolve(result[key]));
+    });
+  }
+
+  function setStorage(key, value) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: value }, () => resolve());
     });
   }
 

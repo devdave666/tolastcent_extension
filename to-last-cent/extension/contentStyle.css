@@ -78,14 +78,23 @@
   width: 44px;
   height: 58px;
   padding: 8px 0;
-  cursor: pointer;
+  cursor: grab;
   border-radius: 0 14px 14px 0;
   transition: transform 160ms ease, background 160ms ease;
+  user-select: none;
 }
 
 #tlc-cashback-popup .tlc-edge-tab:hover {
   background: rgba(255, 255, 255, 0.06);
   transform: translateX(3px);
+}
+
+/* While actively dragging: no hover slide/transition lag, cursor reflects
+   the grab, and text on the page can't be accidentally selected. */
+#tlc-cashback-popup.tlc-dragging .tlc-edge-tab {
+  cursor: grabbing;
+  transform: none;
+  transition: none;
 }
 
 #tlc-cashback-popup .tlc-edge-mark {
