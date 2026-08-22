@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "updatedAt": "2026-08-17T19:00:00Z",
   "merchants": [
     {
@@ -10,8 +10,8 @@
       "category": "Collectibles",
       "cjAdvertiserId": "7889430",
       "cashbackType": "percent",
-      "cashbackRate": 4.0,
-      "cashbackLabel": "4% Cash Back",
+      "cashbackRate": 3.0,
+      "cashbackLabel": "3% Cash Back",
       "terms": "Excludes gift cards and tips.",
       "active": true
     },
@@ -23,8 +23,8 @@
       "category": "Cars & Trucks",
       "cjAdvertiserId": "7455332",
       "cashbackType": "percent",
-      "cashbackRate": 4.0,
-      "cashbackLabel": "4% Cash Back",
+      "cashbackRate": 3.0,
+      "cashbackLabel": "3% Cash Back",
       "terms": "Auto parts & accessories.",
       "active": true
     },
@@ -41,8 +41,8 @@
       "category": "Hunting & Outdoor Equipment",
       "cjAdvertiserId": "6038648",
       "cashbackType": "percent",
-      "cashbackRate": 4.0,
-      "cashbackLabel": "4% Cash Back",
+      "cashbackRate": 3.0,
+      "cashbackLabel": "3% Cash Back",
       "terms": "Covers Ravin, CenterPoint & Valhalla brands.",
       "active": true
     }

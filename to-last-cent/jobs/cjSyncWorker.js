@@ -179,7 +179,7 @@ async function findUserBySid(client, sid) {
 async function findMerchantByAdvertiserId(client, advertiserId) {
   if (!advertiserId) return null;
   const result = await client.query(
-    `select id from merchants where cj_advertiser_id = $1`,
+    `select id, rebate_percent from merchants where cj_advertiser_id = $1`,
     [advertiserId]
   );
   return result.rows[0] || null;
@@ -198,12 +198,20 @@ async function findClickSession(client, userId, merchantId) {
   return result.rows[0]?.id || null;
 }
 
-async function upsertCommission(client, commission, userId, merchantId, clickSessionId) {
-  const rebateResult = await client.query(
-    `select rebate_percent from users where id = $1`,
-    [userId]
-  );
-  const rebatePercent = Number(rebateResult.rows[0]?.rebate_percent ?? 0.8);
+/**
+ * The effective rebate is whichever is *lower* of the user's rate and the
+ * merchant's rate — the merchant rate is the primary margin lever (tune per
+ * program), the user rate exists for future account-tier use. Taking the
+ * minimum means neither one can be used to accidentally exceed the other's
+ * cap.
+ */
+async function upsertCommission(client, commission, user, merchant, clickSessionId) {
+  const merchantRebatePercent = merchant ? Number(merchant.rebate_percent) : null;
+  const userRebatePercent = Number(user.rebate_percent);
+  const rebatePercent =
+    merchantRebatePercent != null
+      ? Math.min(userRebatePercent, merchantRebatePercent)
+      : userRebatePercent;
   const userEarningAmount = Number((commission.commissionAmount * rebatePercent).toFixed(2));
 
   const result = await client.query(
@@ -221,9 +229,9 @@ async function upsertCommission(client, commission, userId, merchantId, clickSes
        posting_date = excluded.posting_date
      returning (xmax = 0) as inserted`,
     [
-      userId,
+      user.id,
       clickSessionId,
-      merchantId,
+      merchant?.id || null,
       commission.cjCommissionId,
       commission.orderId,
       commission.saleAmount,
@@ -284,8 +292,8 @@ async function run() {
       const { userEarningAmount, inserted } = await upsertCommission(
         client,
         commission,
-        user.id,
-        merchant?.id || null,
+        user,
+        merchant,
         clickSessionId
       );
 
