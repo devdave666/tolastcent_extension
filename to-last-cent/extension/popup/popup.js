@@ -243,7 +243,11 @@ async function loadMerchants() {
 function onSearchInput() {
   const query = els.searchInput.value.trim().toLowerCase();
   const filtered = query
-    ? allMerchants.filter((m) => m.name.toLowerCase().includes(query))
+    ? allMerchants.filter(
+        (m) =>
+          m.name.toLowerCase().includes(query) ||
+          (m.domains || []).some((d) => d.toLowerCase().includes(query))
+      )
     : allMerchants;
   renderStoreList(filtered);
 }
