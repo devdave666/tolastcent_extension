@@ -134,20 +134,14 @@ create trigger trg_commissions_updated_at
 
 -- -----------------------------------------------------------------------------
 -- Seed data — keep in sync with /extension/data/merchants.json
+-- Real CJ-approved advertisers for this publisher account.
 -- -----------------------------------------------------------------------------
 insert into merchants
   (id, name, domains, logo_url, category, cj_advertiser_id, destination_url, cashback_type, cashback_rate, cashback_label, terms, active)
 values
-  ('nike', 'Nike', array['nike.com','www.nike.com'], 'https://logo.clearbit.com/nike.com', 'Apparel & Shoes', '3450151', 'https://www.nike.com', 'percent', 4.00, '4% Cash Back', 'Excludes gift cards and clearance items.', true),
-  ('expedia', 'Expedia', array['expedia.com','www.expedia.com'], 'https://logo.clearbit.com/expedia.com', 'Travel', '2734166', 'https://www.expedia.com', 'percent', 3.50, '3.5% Cash Back', 'Cashback varies by booking type.', true),
-  ('macys', 'Macy''s', array['macys.com','www.macys.com'], 'https://logo.clearbit.com/macys.com', 'Department Stores', '2247725', 'https://www.macys.com', 'percent', 6.00, '6% Cash Back', 'Excludes furniture, mattresses, and gift cards.', true),
-  ('priceline', 'Priceline', array['priceline.com','www.priceline.com'], 'https://logo.clearbit.com/priceline.com', 'Travel', '1997855', 'https://www.priceline.com', 'percent', 2.00, '2% Cash Back', 'Applies to Express Deals and retail bookings only.', true),
-  ('office-depot', 'Office Depot', array['officedepot.com','www.officedepot.com'], 'https://logo.clearbit.com/officedepot.com', 'Office Supplies', '2149289', 'https://www.officedepot.com', 'percent', 5.00, '5% Cash Back', 'Excludes technology and print/copy services.', true),
-  ('vistaprint', 'Vistaprint', array['vistaprint.com','www.vistaprint.com'], 'https://logo.clearbit.com/vistaprint.com', 'Printing & Design', '1069215', 'https://www.vistaprint.com', 'percent', 8.00, '8% Cash Back', 'New customers only on some promotions.', true),
-  ('gnc', 'GNC', array['gnc.com','www.gnc.com'], 'https://logo.clearbit.com/gnc.com', 'Health & Wellness', '2029352', 'https://www.gnc.com', 'percent', 7.00, '7% Cash Back', 'Excludes gold card memberships.', true),
-  ('adidas', 'adidas', array['adidas.com','www.adidas.com'], 'https://logo.clearbit.com/adidas.com', 'Apparel & Shoes', '3623597', 'https://www.adidas.com', 'percent', 3.00, '3% Cash Back', 'Excludes limited edition releases.', true),
-  ('wayfair', 'Wayfair', array['wayfair.com','www.wayfair.com'], 'https://logo.clearbit.com/wayfair.com', 'Home & Furniture', '3874318', 'https://www.wayfair.com', 'percent', 2.50, '2.5% Cash Back', 'Excludes Wayfair Professional orders.', true),
-  ('hotwire', 'Hotwire', array['hotwire.com','www.hotwire.com'], 'https://logo.clearbit.com/hotwire.com', 'Travel', '1993197', 'https://www.hotwire.com', 'percent', 1.50, '1.5% Cash Back', 'Hot Rate bookings may be excluded.', true)
+  ('abracadabra-nyc', 'Abracadabra NYC', array['abracadabranyc.com','www.abracadabranyc.com'], 'https://logo.clearbit.com/abracadabranyc.com', 'Collectibles', '7889430', 'https://www.abracadabranyc.com', 'percent', 4.00, '4% Cash Back', 'Excludes gift cards and tips.', true),
+  ('oedro', 'OEDRO', array['oedro.com','www.oedro.com'], 'https://logo.clearbit.com/oedro.com', 'Cars & Trucks', '7455332', 'https://www.oedro.com', 'percent', 4.00, '4% Cash Back', 'Auto parts & accessories.', true),
+  ('velocity-outdoor', 'Velocity Outdoor (Ravin & CenterPoint)', array['ravincrossbows.com','www.ravincrossbows.com','centerpointarchery.com','www.centerpointarchery.com'], 'https://logo.clearbit.com/ravincrossbows.com', 'Hunting & Outdoor Equipment', '6038648', 'https://www.ravincrossbows.com', 'percent', 4.00, '4% Cash Back', 'Covers Ravin, CenterPoint & Valhalla brands.', true)
 on conflict (id) do update set
   name = excluded.name,
   domains = excluded.domains,
