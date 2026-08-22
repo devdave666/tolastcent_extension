@@ -249,23 +249,77 @@ async function activateCashback(merchant, originTabId) {
   redirectUrl.searchParams.set("user_id", userId);
   redirectUrl.searchParams.set("merchant", merchant.id);
 
+  let trackingTab;
+  try {
+    trackingTab = await chrome.tabs.create({
+      url: redirectUrl.toString(),
+      active: false,
+    });
+  } catch (err) {
+    return { ok: false, error: "tab_create_failed" };
+  }
+
+  const outcome = await waitForTrackingOutcome(trackingTab.id, redirectUrl.origin);
+  chrome.tabs.remove(trackingTab.id).catch(() => {});
+
+  if (!outcome.ok) {
+    return outcome;
+  }
+
   await markSessionActive(merchant.id);
   if (originTabId != null) {
     updateBadgeForTab(originTabId, merchant, true);
   }
 
-  const trackingTab = await chrome.tabs.create({
-    url: redirectUrl.toString(),
-    active: false,
-  });
-
-  // The tracking tab immediately redirects to the merchant's site via CJ and
-  // can be closed once the round trip finishes.
-  setTimeout(() => {
-    chrome.tabs.remove(trackingTab.id).catch(() => {});
-  }, 4000);
-
   return { ok: true };
+}
+
+/**
+ * Watches the tracking tab's navigation to confirm the backend's redirect
+ * actually fired (i.e. the tab left our own backend origin), rather than
+ * assuming success — a dead/unreachable backend previously still reported
+ * "Activated" to the user even though nothing was logged server-side.
+ */
+function waitForTrackingOutcome(tabId, backendOrigin) {
+  return new Promise((resolve) => {
+    const TIMEOUT_MS = 8000;
+    let settled = false;
+
+    const settle = (result) => {
+      if (settled) return;
+      settled = true;
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.webNavigation.onErrorOccurred.removeListener(onNavError);
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    const onNavError = (details) => {
+      if (details.tabId !== tabId || details.frameId !== 0) return;
+      settle({ ok: false, error: "backend_unreachable" });
+    };
+
+    const onUpdated = (updatedTabId, changeInfo, tab) => {
+      if (updatedTabId !== tabId || !tab.url) return;
+
+      // Navigated away from our backend (through CJ, on to the merchant) —
+      // the redirect endpoint responded and logged the click.
+      if (!tab.url.startsWith(backendOrigin) && !tab.url.startsWith("chrome:")) {
+        settle({ ok: true });
+        return;
+      }
+
+      // Finished loading but still sitting on our own backend origin means
+      // the redirect endpoint returned an error page instead of a 302.
+      if (changeInfo.status === "complete" && tab.url.startsWith(backendOrigin)) {
+        settle({ ok: false, error: "redirect_failed" });
+      }
+    };
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.webNavigation.onErrorOccurred.addListener(onNavError);
+    const timer = setTimeout(() => settle({ ok: false, error: "timeout" }), TIMEOUT_MS);
+  });
 }
 
 async function refreshBalance() {
