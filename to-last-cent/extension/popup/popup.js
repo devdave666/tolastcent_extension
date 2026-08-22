@@ -230,6 +230,19 @@ async function detectCurrentSite() {
 // ---------------------------------------------------------------------------
 
 async function loadMerchants() {
+  // Prefer the background worker's catalog — it's the live backend data
+  // (with cashback rates computed from real CJ commission figures) when
+  // reachable, falling back to the bundled snapshot only if the backend
+  // can't be reached at all.
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "TLC_GET_MERCHANTS" });
+    if (response?.ok && Array.isArray(response.merchants)) {
+      return response.merchants;
+    }
+  } catch {
+    // background worker unavailable — fall through to the bundled snapshot
+  }
+
   try {
     const url = chrome.runtime.getURL(self.TLC_CONFIG.MERCHANTS_DATA_PATH);
     const res = await fetch(url);

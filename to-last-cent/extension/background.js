@@ -25,6 +25,7 @@ const ALARM_SYNC = "tlc-periodic-sync";
 // ---------------------------------------------------------------------------
 
 let merchantIndexPromise = null;
+let latestMerchantList = [];
 
 /** Builds a Map of registrable-domain -> merchant record for O(1) lookups. */
 async function loadMerchantIndex(forceRefresh = false) {
@@ -43,6 +44,8 @@ async function loadMerchantIndex(forceRefresh = false) {
       console.warn("[TLC] Falling back to bundled merchant catalog:", err);
       merchants = await fetchBundledMerchants();
     }
+
+    latestMerchantList = merchants;
 
     const index = new Map();
     for (const m of merchants) {
@@ -221,6 +224,11 @@ async function handleMessage(message, sender) {
       const merchant = matchMerchantForHostname(message.hostname, index);
       const active = merchant ? await isSessionActive(merchant.id) : false;
       return { ok: true, merchant, active };
+    }
+
+    case "TLC_GET_MERCHANTS": {
+      await loadMerchantIndex();
+      return { ok: true, merchants: latestMerchantList.filter((m) => m.active) };
     }
 
     case "TLC_ACTIVATE_CASHBACK": {

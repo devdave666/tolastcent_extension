@@ -43,10 +43,14 @@ create table if not exists merchants (
   category          text,
   cj_advertiser_id  text not null,                    -- CJ "CID" for this advertiser
   destination_url   text not null,                    -- merchant URL to land on after tracking
+  cj_commission_rate numeric(6,2) not null,            -- raw % of sale CJ pays the publisher
+                                                        -- (source of truth; GET /api/v1/merchants
+                                                        -- multiplies this by the user's
+                                                        -- rebate_percent to get the displayed rate)
   cashback_type     text not null default 'percent'
                       check (cashback_type in ('percent', 'flat')),
-  cashback_rate     numeric(6,2) not null,             -- e.g. 4.00 = 4% or $4.00 flat
-  cashback_label    text not null,                     -- e.g. "4% Cash Back"
+  cashback_rate     numeric(6,2) not null,             -- fallback snapshot, e.g. 4.00 = 4%
+  cashback_label    text not null,                     -- fallback snapshot, e.g. "4% Cash Back"
   terms             text,
   active            boolean not null default true,
   created_at        timestamptz not null default now(),
@@ -137,11 +141,11 @@ create trigger trg_commissions_updated_at
 -- Real CJ-approved advertisers for this publisher account.
 -- -----------------------------------------------------------------------------
 insert into merchants
-  (id, name, domains, logo_url, category, cj_advertiser_id, destination_url, cashback_type, cashback_rate, cashback_label, terms, active)
+  (id, name, domains, logo_url, category, cj_advertiser_id, destination_url, cj_commission_rate, cashback_type, cashback_rate, cashback_label, terms, active)
 values
-  ('abracadabra-nyc', 'Abracadabra NYC', array['abracadabranyc.com','www.abracadabranyc.com'], 'https://logo.clearbit.com/abracadabranyc.com', 'Collectibles', '7889430', 'https://www.abracadabranyc.com', 'percent', 4.00, '4% Cash Back', 'Excludes gift cards and tips.', true),
-  ('oedro', 'OEDRO', array['oedro.com','www.oedro.com'], 'https://logo.clearbit.com/oedro.com', 'Cars & Trucks', '7455332', 'https://www.oedro.com', 'percent', 4.00, '4% Cash Back', 'Auto parts & accessories.', true),
-  ('velocity-outdoor', 'Velocity Outdoor (Ravin & CenterPoint)', array['ravincrossbows.com','www.ravincrossbows.com','centerpointarchery.com','www.centerpointarchery.com'], 'https://logo.clearbit.com/ravincrossbows.com', 'Hunting & Outdoor Equipment', '6038648', 'https://www.ravincrossbows.com', 'percent', 4.00, '4% Cash Back', 'Covers Ravin, CenterPoint & Valhalla brands.', true)
+  ('abracadabra-nyc', 'Abracadabra NYC', array['abracadabranyc.com','www.abracadabranyc.com'], 'https://logo.clearbit.com/abracadabranyc.com', 'Collectibles', '7889430', 'https://www.abracadabranyc.com', 5.00, 'percent', 4.00, '4% Cash Back', 'Excludes gift cards and tips.', true),
+  ('oedro', 'OEDRO', array['oedro.com','www.oedro.com'], 'https://logo.clearbit.com/oedro.com', 'Cars & Trucks', '7455332', 'https://www.oedro.com', 5.00, 'percent', 4.00, '4% Cash Back', 'Auto parts & accessories.', true),
+  ('velocity-outdoor', 'Velocity Outdoor (Ravin & CenterPoint)', array['ravincrossbows.com','www.ravincrossbows.com','centerpointarchery.com','www.centerpointarchery.com'], 'https://logo.clearbit.com/ravincrossbows.com', 'Hunting & Outdoor Equipment', '6038648', 'https://www.ravincrossbows.com', 5.00, 'percent', 4.00, '4% Cash Back', 'Covers Ravin, CenterPoint & Valhalla brands.', true)
 on conflict (id) do update set
   name = excluded.name,
   domains = excluded.domains,
@@ -149,6 +153,7 @@ on conflict (id) do update set
   category = excluded.category,
   cj_advertiser_id = excluded.cj_advertiser_id,
   destination_url = excluded.destination_url,
+  cj_commission_rate = excluded.cj_commission_rate,
   cashback_type = excluded.cashback_type,
   cashback_rate = excluded.cashback_rate,
   cashback_label = excluded.cashback_label,
