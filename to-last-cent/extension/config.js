@@ -34,6 +34,7 @@
       MERCHANTS_CACHE: "tlc_merchants_cache",
       DISMISSED_BANNERS: "tlc_dismissed_banners",
       SETTINGS: "tlc_settings",
+      LAST_LANDED_URLS: "tlc_last_landed_urls",
     },
 
     // How often (minutes) the background worker refreshes the balance and

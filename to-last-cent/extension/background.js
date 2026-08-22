@@ -283,6 +283,13 @@ async function activateCashback(merchant, originTabId) {
     return outcome;
   }
 
+  if (outcome.landedUrl) {
+    console.log(`[TLC] ${merchant.id} tracking redirect landed on:`, outcome.landedUrl);
+    const landedUrls = (await getStorage(STORAGE_KEYS.LAST_LANDED_URLS)) || {};
+    landedUrls[merchant.id] = { url: outcome.landedUrl, at: Date.now() };
+    await setStorage(STORAGE_KEYS.LAST_LANDED_URLS, landedUrls);
+  }
+
   await markSessionActive(merchant.id);
   if (originTabId != null) {
     updateBadgeForTab(originTabId, merchant, true);
@@ -318,18 +325,19 @@ function waitForTrackingOutcome(tabId, backendOrigin) {
 
     const onUpdated = (updatedTabId, changeInfo, tab) => {
       if (updatedTabId !== tabId || !tab.url) return;
+      // Wait for the *entire* redirect chain to finish (backend -> CJ ->
+      // merchant can be two server-side hops) before judging the outcome.
+      // Settling as soon as the URL first left our backend origin used to
+      // close the tab mid-chain, on CJ's intermediate tracking domain,
+      // before it ever reached the merchant.
+      if (changeInfo.status !== "complete") return;
 
-      // Navigated away from our backend (through CJ, on to the merchant) —
-      // the redirect endpoint responded and logged the click.
-      if (!tab.url.startsWith(backendOrigin) && !tab.url.startsWith("chrome:")) {
-        settle({ ok: true });
-        return;
-      }
-
-      // Finished loading but still sitting on our own backend origin means
-      // the redirect endpoint returned an error page instead of a 302.
-      if (changeInfo.status === "complete" && tab.url.startsWith(backendOrigin)) {
+      if (tab.url.startsWith(backendOrigin)) {
+        // Finished loading but still on our own backend origin means the
+        // redirect endpoint returned an error page instead of a 302.
         settle({ ok: false, error: "redirect_failed" });
+      } else if (!tab.url.startsWith("chrome:")) {
+        settle({ ok: true, landedUrl: tab.url });
       }
     };
 
