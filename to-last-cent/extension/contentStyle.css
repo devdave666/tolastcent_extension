@@ -1,150 +1,231 @@
-/* To Last Cent — injected banner styles.
-   Scoped under #tlc-cashback-banner and kept !important-light by using a
-   high z-index + fixed position instead of touching host page styles. */
+/* To Last Cent — injected cashback popup card.
+   Fixed bottom-left, high z-index, self-contained styling (`all: initial`)
+   so host page CSS can't bleed in or override it. */
 
-#tlc-cashback-banner {
+#tlc-cashback-popup {
   all: initial;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  left: 20px;
+  bottom: 20px;
   z-index: 2147483647;
-  transform: translateY(-110%);
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  width: 320px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     Helvetica, Arial, sans-serif;
+  opacity: 0;
+  transform: translateY(28px) scale(0.94);
+  transition: opacity 320ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#tlc-cashback-banner.tlc-visible {
-  transform: translateY(0);
+#tlc-cashback-popup.tlc-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
-#tlc-cashback-banner * {
+#tlc-cashback-popup * {
   box-sizing: border-box;
+  font-family: inherit;
 }
 
-#tlc-cashback-banner .tlc-banner-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 12px 20px;
-  background: linear-gradient(90deg, #022c22 0%, #064e3b 55%, #065f46 100%);
+#tlc-cashback-popup {
+  display: block;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #064e3b 0%, #022c22 65%, #011a13 100%);
+  border: 1px solid rgba(52, 211, 153, 0.35);
   color: #ecfdf5;
-  border-bottom: 1px solid rgba(16, 185, 129, 0.45);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
-  font-size: 14px;
-  line-height: 1.4;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), 0 24px 60px -12px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(16, 185, 129, 0.18);
+  animation: tlc-entrance-glow 1.8s ease-out 320ms 1;
 }
 
-#tlc-cashback-banner .tlc-banner-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+@keyframes tlc-entrance-glow {
+  0% {
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.6), 0 24px 60px -12px rgba(0, 0, 0, 0.6),
+      0 0 55px rgba(52, 211, 153, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), 0 24px 60px -12px rgba(0, 0, 0, 0.6),
+      0 0 40px rgba(16, 185, 129, 0.18);
+  }
 }
 
-#tlc-cashback-banner .tlc-banner-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18);
-  flex-shrink: 0;
-}
-
-#tlc-cashback-banner .tlc-banner-logo {
-  color: #d1fae5;
-  white-space: nowrap;
-}
-
-#tlc-cashback-banner .tlc-banner-message {
-  flex: 1 1 auto;
-  min-width: 0;
-  color: #d1fae5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-#tlc-cashback-banner .tlc-banner-message strong {
-  color: #ffffff;
-  font-weight: 700;
-}
-
-#tlc-cashback-banner .tlc-banner-rate {
-  display: inline-block;
-  margin-left: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(52, 211, 153, 0.16);
-  color: #6ee7b7;
-  font-weight: 700;
-  font-size: 12px;
-}
-
-#tlc-cashback-banner .tlc-banner-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-#tlc-cashback-banner .tlc-btn {
+#tlc-cashback-popup .tlc-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
   appearance: none;
   border: none;
-  cursor: pointer;
-  border-radius: 8px;
-  padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
-  white-space: nowrap;
-}
-
-#tlc-cashback-banner .tlc-btn:disabled {
-  opacity: 0.75;
-  cursor: default;
-}
-
-#tlc-cashback-banner .tlc-btn-primary {
-  background: #10b981;
-  color: #022c22;
-  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.45);
-}
-
-#tlc-cashback-banner .tlc-btn-primary:hover:not(:disabled) {
-  background: #34d399;
-  transform: translateY(-1px);
-}
-
-#tlc-cashback-banner.tlc-activated .tlc-btn-primary {
-  background: #059669;
-  color: #ecfdf5;
-}
-
-#tlc-cashback-banner .tlc-btn-icon {
   background: transparent;
   color: #a7f3d0;
   font-size: 20px;
   line-height: 1;
   padding: 4px 8px;
   border-radius: 6px;
+  cursor: pointer;
 }
 
-#tlc-cashback-banner .tlc-btn-icon:hover {
+#tlc-cashback-popup .tlc-popup-close:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
 
-@media (max-width: 640px) {
-  #tlc-cashback-banner .tlc-banner-logo {
-    display: none;
+#tlc-cashback-popup .tlc-popup-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-right: 24px;
+}
+
+#tlc-cashback-popup .tlc-popup-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: #10b981;
+  color: #022c22;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+#tlc-cashback-popup .tlc-popup-brand-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #d1fae5;
+}
+
+#tlc-cashback-popup .tlc-popup-verified {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 3px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+#tlc-cashback-popup .tlc-popup-body {
+  background: rgba(2, 44, 34, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+#tlc-cashback-popup .tlc-popup-store {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#tlc-cashback-popup .tlc-popup-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+  font-weight: 800;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+#tlc-cashback-popup .tlc-popup-store-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#tlc-cashback-popup .tlc-popup-rate-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#tlc-cashback-popup .tlc-popup-rate {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #34d399;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+#tlc-cashback-popup .tlc-popup-rate-caption {
+  font-size: 12px;
+  color: #9cc9b9;
+  font-weight: 600;
+}
+
+#tlc-cashback-popup .tlc-popup-cta {
+  display: block;
+  width: 100%;
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  background: #10b981;
+  color: #022c22;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease,
+    background 120ms ease;
+  animation: tlc-cta-pulse 2.4s ease-in-out 1.2s 2;
+}
+
+@keyframes tlc-cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
   }
-  #tlc-cashback-banner .tlc-banner-inner {
-    padding: 10px 12px;
-    gap: 10px;
+  50% {
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4), 0 0 0 6px rgba(16, 185, 129, 0.16);
+  }
+}
+
+#tlc-cashback-popup .tlc-popup-cta:hover:not(:disabled) {
+  background: #34d399;
+  transform: translateY(-1px);
+}
+
+#tlc-cashback-popup .tlc-popup-cta:disabled {
+  opacity: 0.75;
+  cursor: default;
+}
+
+#tlc-cashback-popup.tlc-activated .tlc-popup-cta {
+  background: #059669;
+  color: #ecfdf5;
+  animation: none;
+}
+
+#tlc-cashback-popup .tlc-popup-fineprint {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 10.5px;
+  color: #7fae9c;
+}
+
+@media (max-width: 400px) {
+  #tlc-cashback-popup {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
   }
 }

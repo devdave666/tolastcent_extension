@@ -1,17 +1,21 @@
 /**
  * To Last Cent — content script.
  *
- * Renders a dark/emerald "Activate Cashback" banner at the top of the page
- * when the current site is a known cashback merchant. `config.js` runs
- * before this file (see manifest.json) and exposes `self.TLC_CONFIG`.
+ * Renders a floating "Activate Cashback" popup card, bottom-left, when the
+ * current site is a known cashback merchant. Deliberately bottom-left
+ * rather than the bottom-right corner most competing cashback extensions
+ * (Honey, Rakuten, Capital One Shopping) default to — so ours doesn't get
+ * visually buried under/behind a competitor's card fighting for the same
+ * pixels. `config.js` runs before this file (see manifest.json) and
+ * exposes `self.TLC_CONFIG`.
  */
 
 (function () {
   const { STORAGE_KEYS, BANNER_SNOOZE_MS } = self.TLC_CONFIG;
-  const BANNER_ID = "tlc-cashback-banner";
+  const POPUP_ID = "tlc-cashback-popup";
 
   let currentMerchant = null;
-  let bannerEl = null;
+  let popupEl = null;
 
   init();
 
@@ -23,7 +27,7 @@
         hostname,
       });
       if (response?.ok && response.merchant) {
-        maybeShowBanner(response.merchant, response.active);
+        maybeShowPopup(response.merchant, response.active);
       }
     } catch (err) {
       // Extension context may be reloading — fail silently.
@@ -32,11 +36,11 @@
 
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "TLC_MERCHANT_DETECTED" && message.merchant) {
-      maybeShowBanner(message.merchant, message.active);
+      maybeShowPopup(message.merchant, message.active);
     }
   });
 
-  async function maybeShowBanner(merchant, active) {
+  async function maybeShowPopup(merchant, active) {
     if (active) return; // already activated for this merchant this session
     currentMerchant = merchant;
 
@@ -44,44 +48,50 @@
     const dismissedAt = dismissed?.[merchant.id];
     if (dismissedAt && Date.now() - dismissedAt < BANNER_SNOOZE_MS) return;
 
-    renderBanner(merchant);
+    renderPopup(merchant);
   }
 
-  function renderBanner(merchant) {
-    if (document.getElementById(BANNER_ID)) return;
+  function renderPopup(merchant) {
+    if (document.getElementById(POPUP_ID)) return;
 
-    bannerEl = document.createElement("div");
-    bannerEl.id = BANNER_ID;
-    bannerEl.setAttribute("role", "complementary");
-    bannerEl.innerHTML = `
-      <div class="tlc-banner-inner">
-        <div class="tlc-banner-brand">
-          <span class="tlc-banner-dot"></span>
-          <span class="tlc-banner-logo">To Last Cent</span>
+    const initial = merchant.name.charAt(0).toUpperCase();
+
+    popupEl = document.createElement("div");
+    popupEl.id = POPUP_ID;
+    popupEl.setAttribute("role", "complementary");
+    popupEl.setAttribute("aria-label", "To Last Cent cashback offer");
+    popupEl.innerHTML = `
+      <button type="button" class="tlc-popup-close" data-action="dismiss" aria-label="Dismiss">
+        &times;
+      </button>
+      <div class="tlc-popup-brand">
+        <span class="tlc-popup-mark">¢</span>
+        <span class="tlc-popup-brand-name">To Last Cent</span>
+        <span class="tlc-popup-verified">Verified tracking</span>
+      </div>
+      <div class="tlc-popup-body">
+        <div class="tlc-popup-store">
+          <span class="tlc-popup-avatar">${escapeHtml(initial)}</span>
+          <span class="tlc-popup-store-name">${escapeHtml(merchant.name)}</span>
         </div>
-        <div class="tlc-banner-message">
-          <strong>${escapeHtml(merchant.name)}</strong> offers
-          <span class="tlc-banner-rate">${escapeHtml(merchant.cashbackLabel)}</span>
-          — activate before you check out.
-        </div>
-        <div class="tlc-banner-actions">
-          <button type="button" class="tlc-btn tlc-btn-primary" data-action="activate">
-            Activate Cashback
-          </button>
-          <button type="button" class="tlc-btn-icon" data-action="dismiss" aria-label="Dismiss">
-            &times;
-          </button>
+        <div class="tlc-popup-rate-row">
+          <span class="tlc-popup-rate">${escapeHtml(merchant.cashbackLabel)}</span>
+          <span class="tlc-popup-rate-caption">available right now</span>
         </div>
       </div>
+      <button type="button" class="tlc-popup-cta" data-action="activate">
+        Activate Cashback
+      </button>
+      <p class="tlc-popup-fineprint">No extra cost · Powered by CJ Affiliate</p>
     `;
 
-    document.documentElement.prepend(bannerEl);
-    requestAnimationFrame(() => bannerEl.classList.add("tlc-visible"));
+    document.documentElement.appendChild(popupEl);
+    requestAnimationFrame(() => popupEl.classList.add("tlc-visible"));
 
-    bannerEl
+    popupEl
       .querySelector('[data-action="activate"]')
       .addEventListener("click", onActivateClick);
-    bannerEl
+    popupEl
       .querySelector('[data-action="dismiss"]')
       .addEventListener("click", onDismissClick);
   }
@@ -99,8 +109,8 @@
 
       if (response?.ok) {
         button.textContent = "Cashback Activated ✓";
-        bannerEl.classList.add("tlc-activated");
-        setTimeout(hideBanner, 3500);
+        popupEl.classList.add("tlc-activated");
+        setTimeout(hidePopup, 3500);
       } else if (response?.error === "not_authenticated") {
         button.disabled = false;
         button.textContent = "Sign in to activate";
@@ -126,13 +136,13 @@
         merchantId: currentMerchant.id,
       });
     }
-    hideBanner();
+    hidePopup();
   }
 
-  function hideBanner() {
-    if (!bannerEl) return;
-    bannerEl.classList.remove("tlc-visible");
-    setTimeout(() => bannerEl?.remove(), 300);
+  function hidePopup() {
+    if (!popupEl) return;
+    popupEl.classList.remove("tlc-visible");
+    setTimeout(() => popupEl?.remove(), 300);
   }
 
   function getStorage(key) {
