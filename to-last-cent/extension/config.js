@@ -43,6 +43,14 @@
     // How long (ms) a dismissed banner stays hidden for a given merchant.
     BANNER_SNOOZE_MS: 1000 * 60 * 60 * 24, // 24h
 
+    // How long (ms) the local "Activated" state stays valid after clicking
+    // through to a merchant. This is a local UI cue only — actual commission
+    // eligibility is governed by CJ's own tracking cookie window for that
+    // merchant's program (often 24h-30 days), which we have no visibility
+    // into client-side. 24h is a conservative default so the badge doesn't
+    // keep claiming "Activated" long after any realistic cookie has expired.
+    SESSION_ACTIVE_TTL_MS: 1000 * 60 * 60 * 24, // 24h
+
     CJ_PUBLISHER_ID: "YOUR_CJ_PUBLISHER_ID",
   };
 

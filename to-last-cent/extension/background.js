@@ -130,7 +130,16 @@ async function markSessionActive(merchantId) {
 
 async function isSessionActive(merchantId) {
   const sessions = await getActiveSessions();
-  return Boolean(sessions[merchantId]);
+  const session = sessions[merchantId];
+  if (!session) return false;
+
+  const expired = Date.now() - session.activatedAt > self.TLC_CONFIG.SESSION_ACTIVE_TTL_MS;
+  if (expired) {
+    delete sessions[merchantId];
+    await setStorage("tlc_active_sessions", sessions);
+    return false;
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------------------
