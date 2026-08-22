@@ -1,21 +1,24 @@
 /**
  * To Last Cent — content script.
  *
- * Renders a floating cashback popup, bottom-left, when the current site is
- * a known cashback merchant. Deliberately bottom-left rather than the
- * bottom-right corner most competing cashback extensions (Honey, Rakuten,
- * Capital One Shopping) default to — so ours doesn't get visually buried
- * under/behind a competitor's card fighting for the same pixels.
+ * Renders a cashback popup, docked to the left edge of the page, when the
+ * current site is a known cashback merchant. Deliberately left rather than
+ * the bottom-right corner most competing cashback extensions (Honey,
+ * Rakuten, Capital One Shopping) default to — so ours doesn't get visually
+ * buried under/behind a competitor's card fighting for the same pixels.
  *
- * Two states:
+ * Two states, sharing one edge anchor so switching between them doesn't
+ * jump position:
  *  - "full": the bold entrance card with the big rate callout and an
- *    Activate/Refresh CTA. Shown on first detection, and whenever the
- *    compact chip is clicked to expand.
- *  - "compact": a small persistent pill once cashback is active. Exists so
- *    there's always something on screen to click if someone wants to
- *    re-assert tracking (e.g. right before checkout, or after using a
- *    competing extension) — previously, once activated, the card vanished
- *    for 24h with no way back in short of reloading the page.
+ *    Activate/Refresh CTA. Shown on first detection, and whenever the edge
+ *    tab is clicked to expand.
+ *  - "compact": a slim edge-docked tab (icon + status dot only) once
+ *    cashback is active. Exists so there's always something on screen to
+ *    click if someone wants to re-assert tracking (e.g. right before
+ *    checkout, or after using a competing extension) — previously, once
+ *    activated, the card vanished for 24h with no way back in short of
+ *    reloading the page — while staying far less visually intrusive than a
+ *    floating card left open the whole session.
  *
  * `config.js` runs before this file (see manifest.json) and exposes
  * `self.TLC_CONFIG`.
@@ -83,19 +86,20 @@
     containerEl.classList.remove("tlc-activated");
     containerEl.classList.add("tlc-compact");
     containerEl.innerHTML = `
-      <button type="button" class="tlc-chip-close" data-action="dismiss" aria-label="Dismiss">
-        &times;
-      </button>
-      <button type="button" class="tlc-chip-body" data-action="expand">
-        <span class="tlc-chip-dot"></span>
-        <span class="tlc-chip-text">Cashback Active</span>
-        <span class="tlc-chip-caret">Refresh</span>
+      <button
+        type="button"
+        class="tlc-edge-tab"
+        data-action="expand"
+        aria-label="To Last Cent — cashback active, click to refresh"
+        title="Cashback active — click to refresh"
+      >
+        <span class="tlc-edge-mark">¢</span>
+        <span class="tlc-edge-dot"></span>
       </button>
     `;
     containerEl.querySelector('[data-action="expand"]').addEventListener("click", () => {
       renderFull(merchant, { isRefresh: true });
     });
-    containerEl.querySelector('[data-action="dismiss"]').addEventListener("click", onDismissClick);
   }
 
   function renderFull(merchant, { isRefresh }) {
@@ -126,7 +130,7 @@
         ${ctaLabel}
       </button>
       <p class="tlc-popup-fineprint">No extra cost to your order</p>
-      <p class="tlc-popup-warning">Using another cashback or coupon extension on this order may cost you this cashback. For the best chance, activate To Last Cent last, right before checkout.</p>
+      <p class="tlc-popup-warning">Using another cashback or coupon extension on this order may cost you this cashback. For the best chance, refresh To Last Cent right before checkout.</p>
     `;
 
     containerEl

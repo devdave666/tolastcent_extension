@@ -312,9 +312,10 @@ async function activateMerchant(merchant, button) {
     return;
   }
 
+  const isRefresh = button.textContent.trim() === "Refresh";
   button.disabled = true;
   const originalText = button.textContent;
-  button.textContent = "Activating…";
+  button.textContent = isRefresh ? "Refreshing…" : "Activating…";
 
   const response = await chrome.runtime.sendMessage({
     type: "TLC_ACTIVATE_CASHBACK",
@@ -322,14 +323,18 @@ async function activateMerchant(merchant, button) {
   });
 
   if (response?.ok) {
-    // Never leave the button permanently dead — always let it be re-clicked
-    // to refresh tracking (e.g. right before checkout, or after using a
-    // competing extension), rather than looking "done" with no way back in.
-    button.disabled = false;
-    button.textContent = "Refresh";
+    // Hold a brief success confirmation so it's clear the refresh actually
+    // worked, then settle back to "Refresh" — never a permanent dead end,
+    // so there's always a way to re-assert tracking (e.g. right before
+    // checkout, or after using a competing extension).
+    button.textContent = isRefresh ? "Refreshed ✓" : "Activated ✓";
     if (activeMerchantForTab && activeMerchantForTab.id === merchant.id) {
       setStatus("active", "Cashback Active");
     }
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = "Refresh";
+    }, 1800);
   } else {
     button.disabled = false;
     button.textContent = originalText;
