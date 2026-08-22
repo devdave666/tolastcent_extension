@@ -221,6 +221,18 @@
   color: #7fae9c;
 }
 
+#tlc-cashback-popup .tlc-popup-warning {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  text-align: center;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: #fcd34d;
+}
+
 @media (max-width: 400px) {
   #tlc-cashback-popup {
     left: 12px;

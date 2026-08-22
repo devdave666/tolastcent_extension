@@ -83,6 +83,7 @@
         Activate Cashback
       </button>
       <p class="tlc-popup-fineprint">No extra cost to your order</p>
+      <p class="tlc-popup-warning">Using another cashback or coupon extension on this order may cost you this cashback. For the best chance, activate To Last Cent last, right before checkout.</p>
     `;
 
     document.documentElement.appendChild(popupEl);

@@ -44,13 +44,29 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// /api/v1/redirect is unauthenticated by necessity (it's a plain browser
+// navigation, no custom headers possible) and every hit fires a real click
+// through CJ's tracking network. Without a limit here, anyone could script
+// unlimited requests with arbitrary user_id/merchant pairs — this wouldn't
+// let them extract money (payouts only ever come from CJ's own reported
+// commissions, never from a click alone), but a burst of fake clicks with
+// zero conversions is exactly the "invalid traffic" pattern that gets a CJ
+// publisher account suspended. 30 clicks / 15 min per IP comfortably covers
+// real usage while blocking that.
+const redirectLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.get("/healthz", (req, res) => {
   res.json({ ok: true, service: "to-last-cent-backend", time: new Date().toISOString() });
 });
 
 app.use("/api/v1/auth", authLimiter, authRoutes);
 app.use("/api/v1/user", balanceRoutes);
-app.use("/api/v1", redirectRoutes);
+app.use("/api/v1", redirectLimiter, redirectRoutes);
 app.use("/api/v1", merchantRoutes);
 
 app.use((req, res) => {
