@@ -82,7 +82,7 @@
       <button type="button" class="tlc-popup-cta" data-action="activate">
         Activate Cashback
       </button>
-      <p class="tlc-popup-fineprint">No extra cost · Powered by CJ Affiliate</p>
+      <p class="tlc-popup-fineprint">No extra cost to your order</p>
     `;
 
     document.documentElement.appendChild(popupEl);
