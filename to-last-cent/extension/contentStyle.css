@@ -50,6 +50,73 @@
   }
 }
 
+/* Compact chip — the persistent, always-clickable state once cashback is
+   active, so there's never a dead end after activating. Overrides the
+   full-card sizing/animation above. */
+#tlc-cashback-popup.tlc-compact {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  animation: none;
+}
+
+#tlc-cashback-popup .tlc-chip-body {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 999px;
+}
+
+#tlc-cashback-popup .tlc-chip-body:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#tlc-cashback-popup .tlc-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18);
+  flex-shrink: 0;
+}
+
+#tlc-cashback-popup .tlc-chip-text {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ecfdf5;
+  white-space: nowrap;
+}
+
+#tlc-cashback-popup .tlc-chip-caret {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6ee7b7;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  padding-left: 8px;
+  white-space: nowrap;
+}
+
+#tlc-cashback-popup .tlc-chip-close {
+  all: unset;
+  cursor: pointer;
+  color: #7fae9c;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 999px;
+}
+
+#tlc-cashback-popup .tlc-chip-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
 #tlc-cashback-popup .tlc-popup-close {
   position: absolute;
   top: 10px;

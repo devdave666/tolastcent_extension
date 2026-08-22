@@ -211,8 +211,8 @@ async function detectCurrentSite() {
 
     if (response.active) {
       setStatus("active", "Cashback Active");
-      els.currentSiteActivate.textContent = "Activated ✓";
-      els.currentSiteActivate.disabled = true;
+      els.currentSiteActivate.textContent = "Refresh";
+      els.currentSiteActivate.disabled = false;
     } else {
       setStatus("available", "Cashback Available");
       els.currentSiteActivate.textContent = "Activate";
@@ -322,7 +322,11 @@ async function activateMerchant(merchant, button) {
   });
 
   if (response?.ok) {
-    button.textContent = "Activated ✓";
+    // Never leave the button permanently dead — always let it be re-clicked
+    // to refresh tracking (e.g. right before checkout, or after using a
+    // competing extension), rather than looking "done" with no way back in.
+    button.disabled = false;
+    button.textContent = "Refresh";
     if (activeMerchantForTab && activeMerchantForTab.id === merchant.id) {
       setStatus("active", "Cashback Active");
     }

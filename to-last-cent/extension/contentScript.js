@@ -1,21 +1,32 @@
 /**
  * To Last Cent — content script.
  *
- * Renders a floating "Activate Cashback" popup card, bottom-left, when the
- * current site is a known cashback merchant. Deliberately bottom-left
- * rather than the bottom-right corner most competing cashback extensions
- * (Honey, Rakuten, Capital One Shopping) default to — so ours doesn't get
- * visually buried under/behind a competitor's card fighting for the same
- * pixels. `config.js` runs before this file (see manifest.json) and
- * exposes `self.TLC_CONFIG`.
+ * Renders a floating cashback popup, bottom-left, when the current site is
+ * a known cashback merchant. Deliberately bottom-left rather than the
+ * bottom-right corner most competing cashback extensions (Honey, Rakuten,
+ * Capital One Shopping) default to — so ours doesn't get visually buried
+ * under/behind a competitor's card fighting for the same pixels.
+ *
+ * Two states:
+ *  - "full": the bold entrance card with the big rate callout and an
+ *    Activate/Refresh CTA. Shown on first detection, and whenever the
+ *    compact chip is clicked to expand.
+ *  - "compact": a small persistent pill once cashback is active. Exists so
+ *    there's always something on screen to click if someone wants to
+ *    re-assert tracking (e.g. right before checkout, or after using a
+ *    competing extension) — previously, once activated, the card vanished
+ *    for 24h with no way back in short of reloading the page.
+ *
+ * `config.js` runs before this file (see manifest.json) and exposes
+ * `self.TLC_CONFIG`.
  */
 
 (function () {
   const { STORAGE_KEYS, BANNER_SNOOZE_MS } = self.TLC_CONFIG;
-  const POPUP_ID = "tlc-cashback-popup";
+  const CONTAINER_ID = "tlc-cashback-popup";
 
   let currentMerchant = null;
-  let popupEl = null;
+  let containerEl = null;
 
   init();
 
@@ -27,7 +38,7 @@
         hostname,
       });
       if (response?.ok && response.merchant) {
-        maybeShowPopup(response.merchant, response.active);
+        maybeShow(response.merchant, response.active);
       }
     } catch (err) {
       // Extension context may be reloading — fail silently.
@@ -36,31 +47,63 @@
 
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "TLC_MERCHANT_DETECTED" && message.merchant) {
-      maybeShowPopup(message.merchant, message.active);
+      maybeShow(message.merchant, message.active);
     }
   });
 
-  async function maybeShowPopup(merchant, active) {
-    if (active) return; // already activated for this merchant this session
+  async function maybeShow(merchant, active) {
     currentMerchant = merchant;
 
     const dismissed = await getStorage(STORAGE_KEYS.DISMISSED_BANNERS);
     const dismissedAt = dismissed?.[merchant.id];
     if (dismissedAt && Date.now() - dismissedAt < BANNER_SNOOZE_MS) return;
 
-    renderPopup(merchant);
+    render(merchant, active ? "compact" : "full");
   }
 
-  function renderPopup(merchant) {
-    if (document.getElementById(POPUP_ID)) return;
+  function render(merchant, mode) {
+    if (document.getElementById(CONTAINER_ID)) return;
 
+    containerEl = document.createElement("div");
+    containerEl.id = CONTAINER_ID;
+    containerEl.setAttribute("role", "complementary");
+    containerEl.setAttribute("aria-label", "To Last Cent cashback");
+
+    if (mode === "compact") {
+      renderCompact(merchant);
+    } else {
+      renderFull(merchant, { isRefresh: false });
+    }
+
+    document.documentElement.appendChild(containerEl);
+    requestAnimationFrame(() => containerEl.classList.add("tlc-visible"));
+  }
+
+  function renderCompact(merchant) {
+    containerEl.classList.remove("tlc-activated");
+    containerEl.classList.add("tlc-compact");
+    containerEl.innerHTML = `
+      <button type="button" class="tlc-chip-close" data-action="dismiss" aria-label="Dismiss">
+        &times;
+      </button>
+      <button type="button" class="tlc-chip-body" data-action="expand">
+        <span class="tlc-chip-dot"></span>
+        <span class="tlc-chip-text">Cashback Active</span>
+        <span class="tlc-chip-caret">Refresh</span>
+      </button>
+    `;
+    containerEl.querySelector('[data-action="expand"]').addEventListener("click", () => {
+      renderFull(merchant, { isRefresh: true });
+    });
+    containerEl.querySelector('[data-action="dismiss"]').addEventListener("click", onDismissClick);
+  }
+
+  function renderFull(merchant, { isRefresh }) {
+    containerEl.classList.remove("tlc-compact", "tlc-activated");
     const initial = merchant.name.charAt(0).toUpperCase();
+    const ctaLabel = isRefresh ? "Refresh Tracking" : "Activate Cashback";
 
-    popupEl = document.createElement("div");
-    popupEl.id = POPUP_ID;
-    popupEl.setAttribute("role", "complementary");
-    popupEl.setAttribute("aria-label", "To Last Cent cashback offer");
-    popupEl.innerHTML = `
+    containerEl.innerHTML = `
       <button type="button" class="tlc-popup-close" data-action="dismiss" aria-label="Dismiss">
         &times;
       </button>
@@ -80,24 +123,19 @@
         </div>
       </div>
       <button type="button" class="tlc-popup-cta" data-action="activate">
-        Activate Cashback
+        ${ctaLabel}
       </button>
       <p class="tlc-popup-fineprint">No extra cost to your order</p>
       <p class="tlc-popup-warning">Using another cashback or coupon extension on this order may cost you this cashback. For the best chance, activate To Last Cent last, right before checkout.</p>
     `;
 
-    document.documentElement.appendChild(popupEl);
-    requestAnimationFrame(() => popupEl.classList.add("tlc-visible"));
-
-    popupEl
+    containerEl
       .querySelector('[data-action="activate"]')
-      .addEventListener("click", onActivateClick);
-    popupEl
-      .querySelector('[data-action="dismiss"]')
-      .addEventListener("click", onDismissClick);
+      .addEventListener("click", (e) => onActivateClick(e, merchant, isRefresh));
+    containerEl.querySelector('[data-action="dismiss"]').addEventListener("click", onDismissClick);
   }
 
-  async function onActivateClick(event) {
+  async function onActivateClick(event, merchant, isRefresh) {
     const button = event.currentTarget;
     button.disabled = true;
     button.textContent = "Activating…";
@@ -105,13 +143,13 @@
     try {
       const response = await chrome.runtime.sendMessage({
         type: "TLC_ACTIVATE_CASHBACK",
-        merchant: currentMerchant,
+        merchant,
       });
 
       if (response?.ok) {
-        button.textContent = "Cashback Activated ✓";
-        popupEl.classList.add("tlc-activated");
-        setTimeout(hidePopup, 3500);
+        button.textContent = isRefresh ? "Tracking Refreshed ✓" : "Cashback Activated ✓";
+        containerEl.classList.add("tlc-activated");
+        setTimeout(() => renderCompact(merchant), 1800);
       } else if (response?.error === "not_authenticated") {
         button.disabled = false;
         button.textContent = "Sign in to activate";
@@ -137,13 +175,13 @@
         merchantId: currentMerchant.id,
       });
     }
-    hidePopup();
+    hide();
   }
 
-  function hidePopup() {
-    if (!popupEl) return;
-    popupEl.classList.remove("tlc-visible");
-    setTimeout(() => popupEl?.remove(), 300);
+  function hide() {
+    if (!containerEl) return;
+    containerEl.classList.remove("tlc-visible");
+    setTimeout(() => containerEl?.remove(), 300);
   }
 
   function getStorage(key) {
