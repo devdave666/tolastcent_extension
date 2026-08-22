@@ -130,6 +130,25 @@
   }
 }
 
+/* Amber variant — cashback available but not yet activated (e.g. the tab
+   was dismissed without activating). Same tab, different dot color, so the
+   two states are distinguishable at a glance. */
+#tlc-cashback-popup.tlc-compact-available .tlc-edge-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  animation: tlc-edge-pulse-amber 2.4s ease-in-out infinite;
+}
+
+@keyframes tlc-edge-pulse-amber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.3);
+  }
+}
+
 #tlc-cashback-popup .tlc-popup-close {
   position: absolute;
   top: 10px;

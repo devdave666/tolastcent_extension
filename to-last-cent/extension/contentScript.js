@@ -7,18 +7,18 @@
  * Rakuten, Capital One Shopping) default to — so ours doesn't get visually
  * buried under/behind a competitor's card fighting for the same pixels.
  *
- * Two states, sharing one edge anchor so switching between them doesn't
+ * Two shapes, sharing one edge anchor so switching between them doesn't
  * jump position:
  *  - "full": the bold entrance card with the big rate callout and an
- *    Activate/Refresh CTA. Shown on first detection, and whenever the edge
- *    tab is clicked to expand.
- *  - "compact": a slim edge-docked tab (icon + status dot only) once
- *    cashback is active. Exists so there's always something on screen to
- *    click if someone wants to re-assert tracking (e.g. right before
- *    checkout, or after using a competing extension) — previously, once
- *    activated, the card vanished for 24h with no way back in short of
- *    reloading the page — while staying far less visually intrusive than a
- *    floating card left open the whole session.
+ *    Activate/Refresh CTA. Shown on first detection (green edge tab isn't
+ *    active yet), and whenever the edge tab is clicked to expand.
+ *  - "compact" edge tab: icon + status dot only, in one of two colors —
+ *    green ("active", cashback already tracking) or amber ("available",
+ *    not yet activated). Reached either by cashback becoming active, or by
+ *    dismissing the full card — dismissing used to hide everything for
+ *    24h with no way back short of reloading the page; now it only
+ *    downgrades to this small persistent tab, which stays reachable to
+ *    reopen the full card on demand either way.
  *
  * `config.js` runs before this file (see manifest.json) and exposes
  * `self.TLC_CONFIG`.
@@ -85,11 +85,19 @@
   async function maybeShow(merchant, active) {
     currentMerchant = merchant;
 
+    if (active) {
+      render(merchant, "compact-active");
+      return;
+    }
+
+    // Dismissing the full card used to suppress everything for 24h with no
+    // way back short of reloading — now it only downgrades to the small
+    // edge tab (still available to open on demand), never to nothing.
     const dismissed = await getStorage(STORAGE_KEYS.DISMISSED_BANNERS);
     const dismissedAt = dismissed?.[merchant.id];
-    if (dismissedAt && Date.now() - dismissedAt < BANNER_SNOOZE_MS) return;
+    const isDismissed = dismissedAt && Date.now() - dismissedAt < BANNER_SNOOZE_MS;
 
-    render(merchant, active ? "compact" : "full");
+    render(merchant, isDismissed ? "compact-available" : "full");
   }
 
   async function render(merchant, mode) {
@@ -102,8 +110,10 @@
 
     await applySavedPosition();
 
-    if (mode === "compact") {
-      renderCompact(merchant);
+    if (mode === "compact-active") {
+      renderCompact(merchant, { active: true });
+    } else if (mode === "compact-available") {
+      renderCompact(merchant, { active: false });
     } else {
       renderFull(merchant, { isRefresh: false });
     }
@@ -122,23 +132,33 @@
     }
   }
 
-  function renderCompact(merchant) {
+  function renderCompact(merchant, { active }) {
     containerEl.classList.remove("tlc-activated");
     containerEl.classList.add("tlc-compact");
+    containerEl.classList.toggle("tlc-compact-active", active);
+    containerEl.classList.toggle("tlc-compact-available", !active);
+
+    const label = active
+      ? "To Last Cent — cashback active. Click to refresh, or drag to reposition."
+      : "To Last Cent — cashback available. Click to view the offer, or drag to reposition.";
+    const title = active
+      ? "Cashback active — click to refresh, drag to reposition"
+      : "Cashback available — click to view offer, drag to reposition";
+
     containerEl.innerHTML = `
       <button
         type="button"
         class="tlc-edge-tab"
         data-action="expand"
-        aria-label="To Last Cent — cashback active. Click to refresh, or drag to reposition."
-        title="Cashback active — click to refresh, drag to reposition"
+        aria-label="${escapeHtml(label)}"
+        title="${escapeHtml(title)}"
       >
         <span class="tlc-edge-mark">¢</span>
         <span class="tlc-edge-dot"></span>
       </button>
     `;
     const tab = containerEl.querySelector('[data-action="expand"]');
-    makeDraggable(tab, () => renderFull(merchant, { isRefresh: true }));
+    makeDraggable(tab, () => renderFull(merchant, { isRefresh: active }));
   }
 
   /**
@@ -198,7 +218,9 @@
     containerEl
       .querySelector('[data-action="activate"]')
       .addEventListener("click", (e) => onActivateClick(e, merchant, isRefresh));
-    containerEl.querySelector('[data-action="dismiss"]').addEventListener("click", onDismissClick);
+    containerEl
+      .querySelector('[data-action="dismiss"]')
+      .addEventListener("click", () => onDismissClick(merchant, isRefresh));
 
     // The much-taller full card can overflow past the viewport bottom if it
     // opens at a `top` position that was only valid for the short edge tab
@@ -225,7 +247,7 @@
       if (response?.ok) {
         button.textContent = isRefresh ? "Tracking Refreshed ✓" : "Cashback Activated ✓";
         containerEl.classList.add("tlc-activated");
-        setTimeout(() => renderCompact(merchant), 1800);
+        setTimeout(() => renderCompact(merchant, { active: true }), 1800);
       } else if (response?.error === "not_authenticated") {
         button.disabled = false;
         button.textContent = "Sign in to activate";
@@ -244,20 +266,18 @@
     }
   }
 
-  async function onDismissClick() {
-    if (currentMerchant) {
-      await chrome.runtime.sendMessage({
-        type: "TLC_DISMISS_BANNER",
-        merchantId: currentMerchant.id,
-      });
-    }
-    hide();
-  }
-
-  function hide() {
-    if (!containerEl) return;
-    containerEl.classList.remove("tlc-visible");
-    setTimeout(() => containerEl?.remove(), 300);
+  /**
+   * Dismissing the full card no longer removes the popup entirely — that
+   * left no way back in short of reloading the page. It now collapses to
+   * the small edge tab instead, which stays clickable to reopen the full
+   * card on demand.
+   */
+  async function onDismissClick(merchant, active) {
+    await chrome.runtime.sendMessage({
+      type: "TLC_DISMISS_BANNER",
+      merchantId: merchant.id,
+    });
+    renderCompact(merchant, { active });
   }
 
   function getStorage(key) {
