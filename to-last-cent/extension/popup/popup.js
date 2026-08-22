@@ -223,6 +223,12 @@ async function detectCurrentSite() {
     els.currentSite.hidden = true;
     setStatus("idle", "Not a partner store");
   }
+
+  // The store list was already rendered before this async lookup resolved
+  // (activeMerchantForTab was still null then), so re-render now that we
+  // know the current site — bumps it to the top of the list if it's one
+  // of ours.
+  onSearchInput();
 }
 
 // ---------------------------------------------------------------------------
@@ -266,14 +272,26 @@ function onSearchInput() {
 }
 
 function renderStoreList(merchants) {
+  const sorted = sortWithCurrentSiteFirst(merchants);
+
   els.storeList.innerHTML = "";
-  els.emptyState.hidden = merchants.length !== 0;
+  els.emptyState.hidden = sorted.length !== 0;
 
   const fragment = document.createDocumentFragment();
-  for (const merchant of merchants.slice(0, 25)) {
+  for (const merchant of sorted.slice(0, 25)) {
     fragment.appendChild(buildStoreItem(merchant));
   }
   els.storeList.appendChild(fragment);
+}
+
+/** Pins the merchant matching the current tab to the top of the list, if
+ *  it's present in the (possibly search-filtered) set being rendered. */
+function sortWithCurrentSiteFirst(merchants) {
+  if (!activeMerchantForTab) return merchants;
+  const activeId = activeMerchantForTab.id;
+  const match = merchants.find((m) => m.id === activeId);
+  if (!match) return merchants;
+  return [match, ...merchants.filter((m) => m.id !== activeId)];
 }
 
 function buildStoreItem(merchant) {
